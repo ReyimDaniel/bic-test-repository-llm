@@ -18,9 +18,7 @@ def call_openrouter(request: GenerateRequest, max_tokens: int = 512):
     if request.model not in AVAILABLE_MODELS:
         raise HTTPException(
             status_code=400,
-            detail=f"Модель {request.model} недоступна. Используйте только бесплатные модели: {AVAILABLE_MODELS}"
-        )
-
+            detail=f"Модель {request.model} недоступна. Используйте только бесплатные модели: {AVAILABLE_MODELS}")
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
@@ -51,7 +49,11 @@ def call_openrouter(request: GenerateRequest, max_tokens: int = 512):
     raise HTTPException(status_code=429, detail="Слишком много запросов. Попробуйте позже.")
 
 
-@router.post("/generate")
+@router.post("/generate", summary="Использовать нейросеть V2",
+             description="Эндпоинт для использования нейронной сети. "
+                         "Необходимо ввести promt и выбрать модель из списка эндпоинта models. "
+                         "Возвращает ответ нейронной сети, количество использованных токенов из API и затраченное "
+                         "время.")
 def generate_text(request: GenerateRequest, max_tokens: int = 512):
     try:
         start = time.time()
@@ -69,8 +71,13 @@ def generate_text(request: GenerateRequest, max_tokens: int = 512):
         raise HTTPException(status_code=500, detail="Ошибка при обращении к OpenRouter API")
 
 
-@router.post("/benchmark")
-async def identify_benchmark(model: str, runs: int, prompt_file: UploadFile = File(...), ):
+@router.post("/benchmark", summary="Собрать статистику. promt из .txt",
+             description="Эндпоинт для использования нейронной сети. "
+                         "Необходимо загрузить .txt файл с записанными promt по строкам и выбрать модель из списка "
+                         "эндпоинта models и выбрать какое количество раз будет запущен эндпоинт. "
+                         "Возвращает ответ нейронной сети, статистику latency(avg, min, max, std_dev) и сохраняет эти "
+                         "результаты в таблице .csv")
+async def identify_benchmark(model: str, runs: int, prompt_file: UploadFile = File(...)):
     try:
         contents = await prompt_file.read()
         prompts = contents.decode("utf-8").splitlines()
@@ -96,7 +103,6 @@ async def identify_benchmark(model: str, runs: int, prompt_file: UploadFile = Fi
 
         df = pd.DataFrame(results)
         df.to_csv("benchmark_results.csv", index=False)
-
         return {"results": results}
 
     except Exception as e:

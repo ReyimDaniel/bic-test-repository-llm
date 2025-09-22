@@ -12,19 +12,21 @@ router = APIRouter(tags=['Level 1'])
 AVAILABLE_MODELS = fetch_available_models()
 
 
-@router.get("/models", response_model=List[str])
+@router.get("/models", response_model=List[str], summary="Получить список всех моделей",
+            description="Эндпоинт для получения списка всех доступных моделей нейронных сетей.")
 def get_models():
     return AVAILABLE_MODELS
 
 
-@router.post("/generate")
+@router.post("/generate", summary="Использовать нейросеть V1",
+             description="Эндпоинт для использования нейронной сети. "
+                         "Необходимо ввести promt и выбрать модель из списка эндпоинта models")
 def generate_text(request: GenerateRequest):
     if request.model not in AVAILABLE_MODELS:
         raise HTTPException(
             status_code=400,
             detail=f"Модель {request.model} недоступна. Используйте только бесплатные модели: {AVAILABLE_MODELS}"
         )
-
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
